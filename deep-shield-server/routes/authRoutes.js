@@ -4,6 +4,10 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const transporter = require("../utils/mailer");
 const router = express.Router();
+const crypto = require("crypto");
+const strongPassword = (p) =>
+  typeof p === "string" &&
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/.test(p);
 
 /* =====================
    REGISTER API
@@ -31,6 +35,12 @@ router.post("/register", async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         message: "User already exists"
+      });
+    }
+
+    if (!strongPassword(password)) {
+      return res.status(400).json({
+        message: "Password must be 12+ chars with upper, lower, number, symbol"
       });
     }
 
@@ -168,6 +178,82 @@ router.post("/verify-otp", async (req, res) => {
     res.status(500).json({
       message: "Server error"
     });
+  }
+});
+
+/* =====================
+   FORGOT PASSWORD
+   POST /api/auth/forgot-password
+===================== */
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) {
+    return res.status(400).json({ message: "Email is required" });
+  }
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Respond generically to avoid user enumeration
+    if (!user) {
+      return res.json({ message: "If this email exists, a reset link was sent" });
+    }
+    const token = crypto.randomBytes(32).toString("hex");
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+    await user.save();
+
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:3002";
+    const link = `${clientUrl}/reset-password/${token}`;
+
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: user.email,
+        subject: "Reset your DeepShield password",
+        text: `Click the link to reset your password (valid 15 minutes): ${link}`
+      });
+    } catch (e) {
+      console.error("Reset email send error:", e.message);
+    }
+    console.log("Password reset link:", link);
+    return res.json({ message: "If this email exists, a reset link was sent" });
+  } catch (e) {
+    console.error("FORGOT PASSWORD ERROR:", e.message);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+/* =====================
+   RESET PASSWORD
+   POST /api/auth/reset-password/:token
+===================== */
+router.post("/reset-password/:token", async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body || {};
+  if (!password) {
+    return res.status(400).json({ message: "Password is required" });
+  }
+  if (!strongPassword(password)) {
+    return res.status(400).json({
+      message: "Password must be 12+ chars with upper, lower, number, symbol"
+    });
+  }
+  try {
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() }
+    });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    user.password = hash;
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+    await user.save();
+    return res.json({ message: "Password updated successfully" });
+  } catch (e) {
+    console.error("RESET PASSWORD ERROR:", e.message);
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

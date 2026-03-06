@@ -40,6 +40,13 @@ const SignUpPage = () => {
 
     if (!formData.password)
       newErrors.password = "Password is required";
+    const strong =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/.test(
+        formData.password
+      );
+    if (formData.password && !strong)
+      newErrors.password =
+        "Use 12+ chars with uppercase, lowercase, number, and symbol";
 
     if (formData.password !== formData.confirmPassword)
       newErrors.confirmPassword = "Passwords do not match";
@@ -55,8 +62,9 @@ const SignUpPage = () => {
 
   if (Object.keys(validationErrors).length === 0) {
     try {
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
       const response = await axios.post(
-        "http://localhost:5000/api/auth/register",
+        `${API_URL}/api/auth/register`,
         {
           firstname: formData.firstName,
           lastname: formData.lastName,
