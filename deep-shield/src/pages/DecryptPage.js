@@ -39,12 +39,23 @@ const DecryptPage = () => {
         throw new Error(err.message);
       }
 
+      // Extract filename from header
+      const disposition = response.headers.get('content-disposition');
+      let filename = 'decrypted-file'; // Default
+      if (disposition && disposition.indexOf('attachment') !== -1) {
+        const filenameRegex = /filename[^;=\n]*=((['|"])(.*?)\2|[^;\n]*)/;
+        const matches = filenameRegex.exec(disposition);
+        if (matches != null && matches[3]) {
+          filename = matches[3].replace(/['|"]/g, '');
+        }
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = "decrypted-file";
+      a.download = filename; // Use extracted filename
       document.body.appendChild(a);
       a.click();
       a.remove();

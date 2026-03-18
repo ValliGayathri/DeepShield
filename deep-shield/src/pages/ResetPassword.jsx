@@ -19,6 +19,11 @@ const ResetPassword = () => {
       return setError("Passwords do not match");
     }
 
+    const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{12,}$/.test(password);
+    if (!strong) {
+      return setError("Use 12+ chars with uppercase, lowercase, number, and symbol");
+    }
+
     try {
       const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
       await axios.post(

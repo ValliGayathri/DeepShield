@@ -65,7 +65,7 @@ console.log("Saved file object:", file);
 };
 
 // ================================
-// 📂 Get User Files
+//  Get User Files
 // ================================
 exports.getUserFiles = async (req, res) => {
   try {
@@ -79,7 +79,7 @@ exports.getUserFiles = async (req, res) => {
 };
 
 // ================================
-// 📜 Decrypt File
+//  Decrypt File
 // ================================
 exports.decryptFile = async (req, res) => {
   try {
@@ -89,7 +89,7 @@ exports.decryptFile = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    // 🔥 Extract filename from URL
+    //  Extract filename from URL
     const fileName = fileUrl.split("/").pop();
 
     // 🔎 Find file using cloud_url
