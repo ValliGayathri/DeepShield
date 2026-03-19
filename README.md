@@ -269,9 +269,4 @@ DeepShield is a secure, scalable, and practical file protection system demonstra
 ---
 
 
-🎤 Viva explanation for AES + flow
 
-📄 Convert to Word/PDF report format
-
-
-Just tell 👍
